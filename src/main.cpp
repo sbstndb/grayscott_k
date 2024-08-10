@@ -11,11 +11,13 @@
 
 #include <Kokkos_Core.hpp>
 
-const double Du = 0.5 ; 
-const double Dv = 0.3 ; 
-const double k = 0.05 ; 
-const double F = 0.03 ; 
-const double dt = 0.1 ;
+using real = float ; 
+
+const real Du = 0.5 ; 
+const real Dv = 0.3 ; 
+const real k = 0.05 ; 
+const real F = 0.03 ; 
+const real dt = 0.1 ;
 
 const int frames = 10 ; 
 const int nrepeat = 10 ; 
@@ -33,7 +35,7 @@ int main( int argc, char** argv ){
 	Kokkos::initialize( argc, argv );
 	{
 	// Allocate y, x vectors and Matrix A on device.
-	typedef Kokkos::View<double**>  ViewVectorType;
+	typedef Kokkos::View<real**>  ViewVectorType;
 	ViewVectorType u("u", nx, ny);
 	ViewVectorType v("v", nx, ny);
 	// Create host mirrors of device views.
@@ -57,11 +59,11 @@ int main( int argc, char** argv ){
 		// update kernel 
 			Kokkos::parallel_for("stencil", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1,1},{nx-1, ny-1}),
 					KOKKOS_LAMBDA (int i, int j) {
-				double lap_u = u(i+1, j) + u(i-1, j) + u(i, j+1) + u(i, j-1) - 4.0 * u(i,j);
-		                double lap_v = v(i+1, j) + v(i-1, j) + v(i, j+1) + v(i, j-1) - 4.0 * v(i,j);
+				real lap_u = u(i+1, j) + u(i-1, j) + u(i, j+1) + u(i, j-1) - 4.0 * u(i,j);
+		                real lap_v = v(i+1, j) + v(i-1, j) + v(i, j+1) + v(i, j-1) - 4.0 * v(i,j);
 		
-				double du = Du * lap_u - u(i,j) * v(i,j) * v(i,j) + F * (1.0 - u(i,j));
-		                double dv = Dv * lap_v + u(i,j) * v(i,j) * v(i,j) - (F + k) * v(i,j);		
+				real du = Du * lap_u - u(i,j) * v(i,j) * v(i,j) + F * (1.0 - u(i,j));
+		                real dv = Dv * lap_v + u(i,j) * v(i,j) * v(i,j) - (F + k) * v(i,j);		
 		
 				u(i,j) += dt * du ; 
 				v(i,j) += dt * dv ; 
