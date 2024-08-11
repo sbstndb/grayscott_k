@@ -43,7 +43,7 @@ def create_animation(filenames):
 
     print("Save medias...")
    # Enregistrer l'animation en GIF
-    media_dir = "media"
+    media_dir = "media/"
     os.makedirs(media_dir, exist_ok=True)
     ani.save(media_dir+"GS.gif", writer='pillow', fps=20)
 
