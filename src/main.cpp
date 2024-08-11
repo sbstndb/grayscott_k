@@ -17,7 +17,7 @@ using real = double ;
 const real Du = 0.16 ; 
 const real Dv = 0.08 ; 
 const real k = 0.065 ; 
-const real F = 0.035 ; 
+const real F = 0.050 ; 
 const real dt = 1.0 ;
 
 const int frames = 100; 
