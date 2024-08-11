@@ -14,16 +14,16 @@
 using real = double ; 
 
 
-const real Du = 0.2 ; 
-const real Dv = 0.1 ; 
-const real k = 0.06 ; 
-const real F = 0.04 ; 
+const real Du = 0.16 ; 
+const real Dv = 0.08 ; 
+const real k = 0.065 ; 
+const real F = 0.035 ; 
 const real dt = 1.0 ;
 
 const int frames = 100; 
-const int nrepeat = 1; 
+const int nrepeat = 1000; 
 
-const int nx = 64 ; 
+const int nx = 256 ; 
 const int ny = nx ; 
 
 
@@ -87,13 +87,13 @@ int main( int argc, char** argv ){
 	Kokkos::Timer timer;
 	Kokkos::parallel_for("init", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {nx, ny}),
 			KOKKOS_LAMBDA (int i, int j) {
-		u(i,j) = 1.0 ; 
-		v(i,j) = 0.0 ;
+		u(i,j) = 1.0; 
+		v(i,j) = 0.0	;
 		utmp(i,j) = 0.0;
 		vtmp(i,j) = 0.0;
-		if (i == nx/2 && j == ny/2){
-                        v(nx/2, ny/2) = 0.5 ;
-                        u(nx/2, ny/2) = 0.75 ;
+		if (i > 2*nx/5 && i < 3*nx/5 && j > 2*ny/5 && j < 3*ny/5){
+                        v(i, j) = 0.5 ;
+                        u(i, j) = 0.25 ;
 		}
 	});
 
