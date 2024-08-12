@@ -11,7 +11,7 @@
 
 #include <Kokkos_Core.hpp>
 
-using real = double ; 
+using real = float ; 
 
 
 const real Du = 0.16 ; 

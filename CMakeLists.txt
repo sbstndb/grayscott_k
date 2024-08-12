@@ -3,6 +3,9 @@ project(GS-kokkos)
 
 set(Kokkos_COMMON_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../dep/Kokkos)
 find_package(Kokkos CONFIG)
+
+add_subdirectory(external/HighFive)
+
 if(Kokkos_FOUND)
   message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 else()
@@ -24,4 +27,8 @@ endif()
 
 add_executable(GS src/main.cpp)
 target_link_libraries(GS Kokkos::kokkos)
+
+add_executable(GS_3D src/main_3D.cpp)
+target_link_libraries(GS_3D Kokkos::kokkos HighFive)
+
 
