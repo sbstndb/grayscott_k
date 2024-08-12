@@ -45,9 +45,7 @@ public:
 	       dims {static_cast<size_t>(nx*ny*nz)},
 	       tmp(nx*ny*nz)
 	{
-                std::cout << "coucou0" << std::endl ;		
 		dataset = file.createDataSet<real>("default", HighFive::DataSpace(dims));
-		std::cout << "coucou" << std::endl ; 
 	}
 };
 
