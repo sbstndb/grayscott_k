@@ -9,6 +9,10 @@ Thanks to Kokkos, you can compile this code for multiple backends like OpenMP, C
 
 **Disclaimer:** Please note that this project is a work in progress and may contain errors or programming oversights due to its experimental nature. Your understanding and feedback are appreciated as we continue to develop and refine this code.
 
+# ShowCase
+
+![Animation](media/GS_3D.gif)
+
 
 # Prerequisites
 The code use Kokkos as a performance portability library. Then, you must have it to compile the project.
