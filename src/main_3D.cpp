@@ -19,15 +19,24 @@
 
 using real = float ; 
 
+/*
+ * for n = 256
+const real Du = 0.15 ;
+const real Dv = 0.081 ;
+const real K = 0.064 ;
+const real F = 0.050 ;
+const real dt = 1.0 ;
+*/
+
 
 const real Du = 0.15 ; 
 const real Dv = 0.08 ; 
-const real K = 0.065 ; 
+const real K = 0.064 ; 
 const real F = 0.050 ; 
 const real dt = 1.0 ;
 
-const int frames = 20; 
-const int nrepeat = 500; 
+const int frames = 400; 
+const int nrepeat = 200; 
 
 const int nx = 64 ; 
 const int ny = nx ; 

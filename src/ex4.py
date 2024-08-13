@@ -49,6 +49,7 @@ opacity[threshold:255] = np.linspace(1.0, 1.0, 255-threshold)  # Progressivement
 
 
 p = pv.Plotter()
-p.add_volume(grid, scalars="values", opacity_unit_distance=0.05)
+#p.add_volume(grid, scalars="values", opacity_unit_distance=0.05)
+p.add_volume(grid, scalars="values")
 p.show()
 
