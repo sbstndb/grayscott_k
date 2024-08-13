@@ -20,14 +20,14 @@
 using real = float ; 
 
 
-const real Du = 0.16 ; 
+const real Du = 0.15 ; 
 const real Dv = 0.08 ; 
 const real K = 0.065 ; 
 const real F = 0.050 ; 
 const real dt = 1.0 ;
 
-const int frames = 10; 
-const int nrepeat = 100; 
+const int frames = 20; 
+const int nrepeat = 500; 
 
 const int nx = 64 ; 
 const int ny = nx ; 
@@ -44,17 +44,9 @@ public:
 	       file(dumpname, HighFive::File::Overwrite),
 	       dims {static_cast<size_t>(nx*ny*nz)},
 	       tmp(nx*ny*nz)
-	{
-		dataset = file.createDataSet<real>("default", HighFive::DataSpace(dims));
-	}
+	{	}
 };
 
-
-void configure_hdf(HDF& hdf, auto nx, auto ny, auto nz){
-        using namespace HighFive ;
-//        hdf.dataset = hdf.file.createDataSet<real>("filename", DataSpace(hdf.dims));
-
-}
 
 void save_to_hdf(HDF& hdf, const auto& h_view, auto nx, auto ny, auto nz, auto framename){
 	using namespace HighFive ; 
@@ -67,9 +59,7 @@ void save_to_hdf(HDF& hdf, const auto& h_view, auto nx, auto ny, auto nz, auto f
 					}
 			}
 	}
-
 	hdf.dataset.write(hdf.tmp);
-
 }
 
 
@@ -143,16 +133,34 @@ int main( int argc, char** argv ){
 	for (int frame = 0 ; frame < frames ; frame++){
 		for (int repeat = 0 ; repeat < nrepeat ; repeat++){
 		// update kernel 
-			Kokkos::parallel_for("stencil", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({1,1,1},{nx-1, ny-1, nz-1}),
+			Kokkos::parallel_for("stencil", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0,0,0},{nx, ny, nz}),
 					KOKKOS_LAMBDA (int i, int j, int k) {
 				real invdx = 1.00;//(nx*nx);
 //				 7 points 3D stencil 
 //				 future: use 27 points 3D laplacian stencil 
-                              real lap_u = u(i+1, j, k) + u(i-1, j, k) + u(i, j+1, k) + u(i, j-1, k) 
-			      		+ u(i, j, k-1) + u(i, j, k+1) 
+//
+
+				// periodic BL
+			int im = i-1 ; 
+			int jm = j-1 ; 
+			int km = k-1 ;
+			int ip = i+1 ;
+			int jp = j+1 ;
+			int kp = k+1 ;
+			
+			if (i == 0) im = nx-1 ;
+			if (i == nx-1) ip = 0 ; 
+                        if (j == 0) jm = ny-1 ;
+                        if (j == ny-1) jp = 0 ;
+                        if (k == 0) km = nz-1 ;
+                        if (k == nz-1) kp = 0 ;
+			
+			
+                              real lap_u = u(ip, j, k) + u(im, j, k) + u(i, jp, k) + u(i, jm, k) 
+			      		+ u(i, j, km) + u(i, j, kp) 
 					- 6.0 * u(i, j, k);
-                              real lap_v = v(i+1, j, k) + v(i-1, j, k) + v(i, j+1, k) + v(i, j-1, k)
-			     		+ v(i, j, k-1) + v(i, j, k+1)
+                              real lap_v = v(ip, j, k) + v(im, j, k) + v(i, jp, k) + v(i, jm, k)
+			     		+ v(i, j, km) + v(i, j, kp)
 				       	- 6.0 * v(i,j, k);
 
 
@@ -162,7 +170,10 @@ int main( int argc, char** argv ){
 				utmp(i,j,k) = dt * du ; 
 				vtmp(i,j,k) = dt * dv ; 
 			});
-                        Kokkos::parallel_for("update", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({1,1,1},{nx-1, ny-1, nz-1}),
+
+
+
+                        Kokkos::parallel_for("update", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0,0,0},{nx, ny, nz}),
                                         KOKKOS_LAMBDA (int i, int j, int k) {
                                 u(i,j,k) += utmp(i,j,k);
 				v(i,j,k) += vtmp(i,j,k);
