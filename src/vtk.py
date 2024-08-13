@@ -19,36 +19,26 @@ with h5py.File("dump", 'r') as file:
     # Lire la dernière frame et la reshaper en cube 3D
     last_frame = file[frame_keys[-1]][:].reshape((nx, ny, nz))
 
+# Dimensions du grid
+nx, ny, nz = 64, 64, 64
 
+grid = pv.ImageData(dimensions=(nx, ny, nz));
 
-# Création des coordonnées pour chaque point
-x = np.linspace(0, 1, nx)
-y = np.linspace(0, 1, ny)
-z = np.linspace(0, 1, nz)
-x, y, z = np.meshgrid(x, y, z)
+# Définir les dimensions du grid
+grid.dimensions = np.array(last_frame.shape) + 1
 
-# Fusionner les coordonnées pour créer un tableau de points 3D
-points = np.vstack((x.flatten(), y.flatten(), z.flatten())).T
+# Les points d'origine
+grid.origin = (0, 0, 0)  # Origine
 
-# Créer un StructuredGrid
-grid = pv.StructuredGrid()
-grid.points = points
-grid.dimensions = (nx, ny, nz)
+# La distance entre les points
+grid.spacing = (1/nx, 1/ny, 1/nz)  # Espacement (1, 1, 1)
 
-# Ajouter les données scalaires
+# Ajouter les données de scalaires au grid
+#grid.cell_data["values"] = last_frame.flatten(order="F")  # Ordre Fortran pour PyVista
 grid["values"] = last_frame.flatten(order="F")
-
 # Créer une visualisation 3D avec transparence
-
-opacity = np.zeros(256)
-threshold = 50
-opacity[threshold:255] = np.linspace(1.0, 1.0, 255-threshold)  # Progressivement plus opaque au milieu
-#opacity = np.linspace(1.0, 1.0, 255)
-#opacity="sigmoid"
-
-
-
+opacity = np.linspace(0, 1, 256)  # Définir un mappage d'opacité
 p = pv.Plotter()
-p.add_volume(grid, scalars="values", opacity_unit_distance=0.05)
+p.add_volume(grid, cmap="viridis", opacity=opacity)
 p.show()
 
