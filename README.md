@@ -1,6 +1,6 @@
 # Introduction
  Here is a simple 3D Gray-Scott simulator. 
- The aim of this project is to have a forst look at the Kokkos library.
+ The aim of this project is to have a first look at the Kokkos library.
 
  From the [Kokkos](https://github.com/kokkos) github repo : 
 > The Kokkos C++ Performance Portability Ecosystem is a production level solution for writing modern C++ applications in a hardware agnostic way.
@@ -23,7 +23,8 @@ You can currently launch the executable named `GS` with the following command :
 ```
 This will run the executable with the default parameters.
 ## Future customization options
-In a future release, you will be able to customize the parameters via the CLI with : 
+
+In a future release, you will be able to customize the parameters via the CLI. The following example demonstrates how to launch the program with specific parameters:
 ```
 ./GS --dim 3D --stencil 7 --Du 0.05 --Dv 0.04 ...
 ```
@@ -46,7 +47,7 @@ spack load kokkos
 
 The python visualizer works withthe packages `h5py`, `numpy`, `pyvista` and `imageio`. You can install them with your favotite python installation : 
 ```
-pip3 install h>5py pyvista numpy imageio
+pip3 install h5py pyvista numpy imageio
 ```
 These packages enable reading HDF5 files and generating scientific visualizations using VTK through `PyVista`.
 
