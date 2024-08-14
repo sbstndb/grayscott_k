@@ -12,6 +12,7 @@ Thanks to Kokkos, you can compile this code for multiple backends like OpenMP, C
 # Compilation
 Compile the code with the following commands : 
 ```
+git submodule update --init --recursive
 mkdir build && cd build && cmake ..
 make -j 
 ```
