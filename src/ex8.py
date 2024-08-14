@@ -9,6 +9,8 @@ import os as os
 from PIL import Image
 
 
+pv.global_theme.allow_empty_mesh = True
+
 def vec_to_mesh(frame, nx, ny, nz):
         grid = pv.ImageData(dimensions=(nx+1, ny+1, nz+1))
         ugrid =  grid.cast_to_unstructured_grid()
@@ -42,7 +44,7 @@ def extract_smooth_surface(mesh, iter, pb):
     return smooth
 
 def add_mesh_custom(pl, mesh):
-    pl.add_mesh(mesh, show_scalar_bar=False, color="003366", smooth_shading=True, pbr=True, metallic=0.25, roughness=0.4, diffuse=0.2)
+    pl.add_mesh(mesh, show_scalar_bar=False, color="ffffcc", smooth_shading=True, pbr=True, metallic=0.25, roughness=0.4, diffuse=0.2)
 
 
 
@@ -75,7 +77,9 @@ with h5py.File("dump", 'r') as file:
         smooth = extract_smooth_surface(threshold, 50, 0.05)
         p = pv.Plotter(off_screen=True)
 
-        p.set_background("ffff99")
+        p.enable_eye_dome_lighting()
+
+        p.set_background("black")
 
 
         p.add_mesh(outline)
