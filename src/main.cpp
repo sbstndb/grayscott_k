@@ -236,7 +236,6 @@ public :
                                 stencil_twenty_seven_point();
                 }
 		update();
-		// update here 
 	}
 
         void initialize() {
@@ -274,10 +273,7 @@ public :
 	                                        }
 	                        }
 	        }
-		std::cout << "here" << std::endl ; 
 	        hdf.dataset.write(hdf.tmp);
-                std::cout << "not here" << std::endl ;
-
 	}
 
 };
