@@ -28,19 +28,31 @@ const real F = 0.050 ;
 const real dt = 1.0 ;
 */
 
-
+/*
+// * for n = 64
 const real Du = 0.15 ; 
 const real Dv = 0.08 ; 
 const real K = 0.064 ; 
 const real F = 0.050 ; 
 const real dt = 1.0 ;
+*/
 
-const int frames = 400; 
-const int nrepeat = 200; 
 
-const int nx = 64 ; 
-const int ny = nx ; 
-const int nz = nx ; 
+struct Setting {
+	real Du = 0.15 ;
+	real Dv = 0.08 ;
+	real K = 0.064 ;
+	real F = 0.0505 ;
+	real dt = 1.0 ;
+
+	int frames = 100 ;
+	int nrepeat = 1000 ; 
+
+	int nx = 64 ;
+	int ny = nx ;
+	int nz = nx ;
+};
+
 
 class HDF {
 public:
@@ -105,36 +117,105 @@ void save_to_file(const auto& view1, const auto& view2, auto nx, auto ny, auto n
 }
 
 int main( int argc, char** argv ){
+	Setting setting ; 
+
+  // Read command line arguments.
+        for ( int i = 0; i < argc; i++ ) {
+                if ( ( strcmp( argv[ i ], "-size" ) == 0 ) || ( strcmp( argv[ i ], "-Size" ) == 0 ) ) {
+                        setting.nx = static_cast<int>(atoi( argv[++i]));
+			setting.ny = setting.nx ; 
+			setting.nz = setting.nx ; 
+                printf( "  User nx is %d\n", setting.nx );
+        }
+        else if ( ( strcmp( argv[ i ], "-frames" ) == 0 ) || ( strcmp( argv[ i ], "-Frames" ) == 0 ) ) {
+                setting.frames = static_cast<int>(atoi( argv[++i]));
+                printf( "  User frames is %d\n", setting.frames );
+        }
+        else if ( strcmp( argv[ i ], "-nrepeat" ) == 0 ) {
+                setting.nrepeat = static_cast<int>(atoi( argv[ ++i ] ));
+	}
+        else if ( ( strcmp( argv[ i ], "-dt" ) == 0 ) || ( strcmp( argv[ i ], "-Dt" ) == 0 ) ) {
+                setting.dt = static_cast<real>(atof( argv[++i]));
+               printf( "  User dt is %f\n", setting.dt );
+        }
+        else if ( ( strcmp( argv[ i ], "-du") == 0 ) || ( strcmp( argv[ i ], "-DU" ) == 0 ) ) {
+                setting.Du = static_cast<real>(atof( argv[++i]));
+                printf( "  User Du is %f\n", setting.Du );
+        }
+        else if ( ( strcmp( argv[ i ], "-dv" ) == 0 ) || ( strcmp( argv[ i ], "-DV" ) == 0 ) ) {
+                setting.Dv= static_cast<real>(atof( argv[++i]));
+                printf( "  User Dv is %f\n", setting.Dv );
+        }
+        else if ( ( strcmp( argv[ i ], "-k" ) == 0 ) || ( strcmp( argv[ i ], "-K" ) == 0 ) ) {
+                setting.K= static_cast<real>(atof( argv[++i]));
+                printf( "  User K is %f\n", setting.K );
+        }
+        else if ( ( strcmp( argv[ i ], "-f" ) == 0 ) || ( strcmp( argv[ i ], "-F" ) == 0 ) ) {
+                setting.F = static_cast<real>(atof( argv[++i]));
+                printf( "  User f is %f\n", setting.F );
+        }
+	
+        else if ( ( strcmp( argv[ i ], "-h" ) == 0 ) || ( strcmp( argv[ i ], "-help" ) == 0 ) ) {
+                printf( "  NBody Options:\n" );
+                printf( "  -size (-Size) <int>:    Size of the domain\n" );
+                printf( "  -frames (-Frames) <int>:         number of saved frames\n" );
+                printf( "  -nrepeat <int>:        number of repetitions (default: 100)\n" );
+                printf( "  -dt (-Dt) <int>:       timestep\n" );
+                printf( "  -du (-DU) <int>:       Diffusivité pour u \n" );
+                printf( "  -dv (-DV) <int>:        Diffucivité pour v\n" );
+                printf( "  -K (-K) <int>:         valeur K\n" );
+                printf( "  -f (-Frames) <int>:      valeur f\n" );			
+                printf( "  -help (-h):            print this message\n\n" );
+                exit( 1 );
+        }
+}
+
+
 
 	Kokkos::initialize( argc, argv );
 	{
 	// Allocate y, x vectors and Matrix A on device.
 	typedef Kokkos::View<real***>  ViewVectorType;
+	typedef Kokkos::View<Setting*> SettingType ;
+
+        SettingType s("setting", 1);
+        SettingType::HostMirror h_s = Kokkos::create_mirror_view (s);
+	h_s[0] = setting; 
+        int nx = setting.nx ;
+        int ny = setting.ny ;
+        int nz = setting.nz ;
+	int frames = setting.frames ;
+	int nrepeat = setting.nrepeat ;	
+
 	ViewVectorType u("u", nx, ny, nz);
 	ViewVectorType v("v", nx, ny, nz);
 
         ViewVectorType utmp("utmp", nx, ny, nz);
         ViewVectorType vtmp("vtmp", nx, ny, nz);
 
-
 	// Create host mirrors of device views.
 	ViewVectorType::HostMirror h_u = Kokkos::create_mirror_view( u ) ;
         ViewVectorType::HostMirror h_v = Kokkos::create_mirror_view( v ) ;
 
+        
+	Kokkos::deep_copy(s, h_s);
+
+
 	// init views
 	//
 	Kokkos::Timer timer;
-	Kokkos::parallel_for("init", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0,0,0}, {nx, ny,nz}),
+	Kokkos::parallel_for("init", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0,0,0}, { nx, ny, nz}),
 			KOKKOS_LAMBDA (int i, int j, int k) {
 		u(i,j,k) = 1.0; 
 		v(i,j,k) = 0.0	;
 		utmp(i,j,k) = 0.0;
 		vtmp(i,j,k) = 0.0;
-		if (i > 2*nx/5 && i < 3*nx/5 && j > 2*ny/5 && j < 3*ny/5 && k > 2*nz/5 && k < 3*nz/5){
+		if (i > 2*s(0).nx/5 && i < 3*s(0).nx/5 && j > 2*s(0).ny/5 && j < 3*s(0).ny/5 && k > 2*s(0).nz/5 && k < 3*s(0).nz/5){
                         v(i, j, k) = 0.5 ;
                         u(i, j, k) = 0.25 ;
 		}
 	});
+
 
 	HDF hdf(nx, ny, nz, "dump") ; 
 	save_to_hdf(hdf, h_v, nx, ny, nz, std::to_string(0));
@@ -173,11 +254,11 @@ int main( int argc, char** argv ){
 				       	- 6.0 * v(i,j, k);
 
 
-				real du = Du * lap_u * invdx - u(i,j,k) * v(i,j,k) * v(i,j,k) + F * (1.0 - u(i,j,k));
-		                real dv = Dv * lap_v * invdx + u(i,j,k) * v(i,j,k) * v(i,j,k) - (F + K) * v(i,j,k);		
+				real du = s(0).Du * lap_u * invdx - u(i,j,k) * v(i,j,k) * v(i,j,k) + s(0).F * (1.0 - u(i,j,k));
+		                real dv = s(0).Dv * lap_v * invdx + u(i,j,k) * v(i,j,k) * v(i,j,k) - (s(0).F + s(0).K) * v(i,j,k);		
 		
-				utmp(i,j,k) = dt * du ; 
-				vtmp(i,j,k) = dt * dv ; 
+				utmp(i,j,k) = s(0).dt * du ; 
+				vtmp(i,j,k) = s(0).dt * dv ; 
 			});
 
 
