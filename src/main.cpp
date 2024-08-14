@@ -10,14 +10,13 @@
 #include <random>
 #include <vector>
 
-
 #include <Kokkos_Core.hpp>
-
 
 #include "../external/HighFive/include/highfive/highfive.hpp"
  
 
 using real = float ; 
+using View3D = Kokkos::View<real***> ;
 
 /*
  * for n = 256
@@ -75,7 +74,7 @@ public :
 	        real dt = 1.0 ;
 	
 	        int frames = 100 ;
-	        int nrepeat = 100 ;
+	       int nrepeat = 1000 ;
 	
 	        int nx = 64 ;
 	        int ny = nx ;
@@ -88,10 +87,8 @@ public :
 
         Setting setting ;
         int nx, ny, nz;
-        Kokkos::View<real***>u, v, utmp, vtmp;
-        Kokkos::View<real***>::HostMirror h_u, h_v;
-        Kokkos::View<GrayScott::Setting*> s ;
-        Kokkos::View<GrayScott::Setting*>::HostMirror h_s;
+        View3D u, v, utmp, vtmp;
+        View3D::HostMirror h_u, h_v;
 
 	GrayScott(Setting& setting) : setting(setting) {
 		nx = setting.nx ; 
@@ -104,20 +101,16 @@ public :
 
 	void allocate(){
 
-                u = Kokkos::View<real***>("u", nx, ny, nz);
-                v = Kokkos::View<real***>("v", nx, ny, nz);
+                u = View3D("u", nx, ny, nz);
+                v = View3D("v", nx, ny, nz);
                 h_u = Kokkos::create_mirror_view (u);
                 h_v = Kokkos::create_mirror_view (v);
 
-                s =  Kokkos::View<GrayScott::Setting*>("s",1);
-                h_s = Kokkos::create_mirror_view (s);
-
-                Kokkos::deep_copy(s, h_s);
 		Kokkos::deep_copy(u, h_u);
 		Kokkos::deep_copy(v, h_v);
 
-                utmp = Kokkos::View<real***>("utmp", nx, ny, nz);
-                vtmp = Kokkos::View<real***>("vtmp", nx, ny, nz);
+                utmp = View3D("utmp", nx, ny, nz);
+                vtmp = View3D("vtmp", nx, ny, nz);
 	}
 
 
@@ -138,9 +131,9 @@ public :
 	}
 
 	struct FunctorCentralBlock {
-		Kokkos::View<real***> u, v, utmp, vtmp ; 
+		View3D u, v, utmp, vtmp ; 
 		int nx, ny, nz ; 
-		FunctorCentralBlock(Kokkos::View<real***> u ,Kokkos::View<real***> v, Kokkos::View<real***> utmp,Kokkos::View<real***> vtmp,
+		FunctorCentralBlock(View3D u, View3D v, View3D utmp, View3D vtmp,
 			       int nx, int ny, int nz) : 
 			u(u), v(v), utmp(utmp), vtmp(vtmp),
 			nx(nx), ny(ny), nz(nz) {}
@@ -160,9 +153,9 @@ public :
 	};
 
 	struct FunctorStencilSevenPoint {
-                Kokkos::View<real***> u, v, utmp, vtmp ;
+                View3D u, v, utmp, vtmp ;
                 Setting s ;
-                FunctorStencilSevenPoint(Kokkos::View<real***> u ,Kokkos::View<real***> v, Kokkos::View<real***> utmp,Kokkos::View<real***> vtmp,
+                FunctorStencilSevenPoint(View3D u, View3D v,View3D utmp,View3D vtmp,
                                Setting s) :
                         u(u), v(v), utmp(utmp), vtmp(vtmp),
                         s(s) {}
@@ -188,9 +181,9 @@ public :
 
 	
         struct FunctorUpdate {
-                Kokkos::View<real***> u, v, utmp, vtmp ;
+                View3D u, v, utmp, vtmp ;
                 int nx, ny, nz ;
-                FunctorUpdate(Kokkos::View<real***> u ,Kokkos::View<real***> v, Kokkos::View<real***> utmp,Kokkos::View<real***> vtmp,
+                FunctorUpdate(View3D u, View3D v, View3D utmp, View3D vtmp,
                                int nx, int ny, int nz) :
                         u(u), v(v), utmp(utmp), vtmp(vtmp),
                         nx(nx), ny(ny), nz(nz) {}
