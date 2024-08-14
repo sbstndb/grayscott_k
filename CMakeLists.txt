@@ -26,9 +26,10 @@ endif()
 
 
 add_executable(GS src/main.cpp)
-target_link_libraries(GS Kokkos::kokkos)
+target_link_libraries(GS Kokkos::kokkos HighFive)
 
-add_executable(GS_3D src/main_3D.cpp)
-target_link_libraries(GS_3D Kokkos::kokkos HighFive)
+
+
+
 
 
