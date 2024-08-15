@@ -153,8 +153,10 @@ public :
 			}
 			Kokkos::deep_copy(h_u, u);
 			Kokkos::deep_copy(h_v, v);
+			std::cout << "\r-- Progress : " << (100*frame/setting.frames) << "% --" << std::flush;
 			save_to_hdf(hdf, h_v, std::to_string(frame+1));
 		}
+		std::cout << std::endl ; 
 	}
 
 	struct FunctorCentralBlock {
@@ -361,6 +363,8 @@ int main(int argc, char ** argv){
 		simulation.run() ; 
 	}
 	Kokkos::finalize() ; 
+
+	std::cout << "-- Chaos simulation completed ;-) --" << std::endl ; 
 	return 0 ; 
 }
 
