@@ -11,13 +11,12 @@
 #include <vector>
 
 #include <Kokkos_Core.hpp>
-
 #include "../external/HighFive/include/highfive/highfive.hpp"
  
-
 using real = float ; 
 using View3D = Kokkos::View<real***> ;
 
+// --> add this to a default parameter selector :-)
 /*
  * for n = 256
 const real Du = 0.15 ;
@@ -38,6 +37,10 @@ const real dt = 1.0 ;
 
 
 class HDF {
+/**
+ *	@brief HDF that enable saving the several flattened fields host_v in one file
+ *	@todo 
+ */
 public:
 	HighFive::File file;
 	HighFive::DataSet dataset;
@@ -51,9 +54,20 @@ public:
 };
 
 class GrayScott {
+/**
+ *	@brief Main class of the project
+ *	@todo Implement 2D only simulation
+ *	@todo Implement different stencil versions
+ *	@todo Implement different initializations
+ *	@todo Add parser
+ *	@todo Add predefined Setting configuration helping the user to reproduce beautiful cases
+ *	@todo finetune the kokkos kernels
+ *	@todo work on the Functors : refactor them ? 
+ */	
 public : 
 	enum class BoundaryCondition {
 		Periodic
+		NoPeriodic
 	};
 	enum class InitializationType {
 		Random, 
@@ -67,6 +81,11 @@ public :
 
 
 	struct Setting {
+/**
+ *	@brief struct that define the simulation parameters
+ *	@todo allow non cubic parameter (nx != ny f.e)
+ *	@todo allow modifying it with a CLI parser or a predefined configuration file
+ */		
 	        real Du = 0.15 ;
 	        real Dv = 0.08 ;
 	        real K = 0.064 ;
@@ -74,7 +93,7 @@ public :
 	        real dt = 1.0 ;
 	
 	        int frames = 100 ;
-	       int nrepeat = 1000 ;
+		int nrepeat = 1000 ;
 	
 	        int nx = 64 ;
 	        int ny = nx ;
@@ -100,7 +119,10 @@ public :
 	}
 
 	void allocate(){
-
+/**
+ *	@brief Specification and allocation of the several Kokkos Views and mirror Views
+ *	@todo Add exception !
+ */
                 u = View3D("u", nx, ny, nz);
                 v = View3D("v", nx, ny, nz);
                 h_u = Kokkos::create_mirror_view (u);
@@ -115,6 +137,11 @@ public :
 
 
 	void run(){
+/**
+ *	@brief Main nested loop that call the Kokkos kernel and save the v field in an HDF file
+ *	@todo Add timer
+ *	@todo enable asynchronous execution of the kernel and the save_to_hdf function
+ */
 		HDF hdf = HDF(nx, ny, nz, "dump");
 		Kokkos::deep_copy(h_v, v);
 		Kokkos::fence() ; 
@@ -131,6 +158,10 @@ public :
 	}
 
 	struct FunctorCentralBlock {
+/**
+ *	@brief Functor that initialize the fields u and v with a central block perturbation
+ *	@todo Enable defining the size and the location of the blok perturbation
+ */
 		View3D u, v, utmp, vtmp ; 
 		int nx, ny, nz ; 
 		FunctorCentralBlock(View3D u, View3D v, View3D utmp, View3D vtmp,
@@ -153,6 +184,11 @@ public :
 	};
 
 	struct FunctorStencilSevenPoint {
+/**
+ *	@brief Functor that implements the 7c-3D stencil kernel with perdiodic boundary condition
+ *	@todo select with or without periodic boundary condition
+ *	@todo separate the laplacian computation (the stencil part) and the du/dv computation that are independants ! then only select the stencil code with each possible variant
+ */
                 View3D u, v, utmp, vtmp ;
                 Setting s ;
                 FunctorStencilSevenPoint(View3D u, View3D v,View3D utmp,View3D vtmp,
@@ -181,6 +217,9 @@ public :
 
 	
         struct FunctorUpdate {
+/**
+ *	@brief Functor that update the main fields u and v with the temporary utmp and vtmp solutions given by the stencil kernel
+ */		
                 View3D u, v, utmp, vtmp ;
                 int nx, ny, nz ;
                 FunctorUpdate(View3D u, View3D v, View3D utmp, View3D vtmp,
@@ -190,7 +229,7 @@ public :
 
                 KOKKOS_INLINE_FUNCTION
                 void operator()(int i, int j, int k) const {
-                        u(i,j,k) +=utmp(i,j,k);
+                        u(i,j,k) += utmp(i,j,k) ;
                         v(i,j,k) += vtmp(i,j,k) ;
                 }
         };
@@ -199,6 +238,10 @@ public :
 
 
 	void initialize_random() {
+/**
+ *	@brief Call the Kokkos kernel that initialize with random values
+ *	@todo Implement the dedicated Functor
+ */		
 	        Kokkos::parallel_for("init_random", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({ 0, 0, 0 }, { nx, ny, nz }),
 	            KOKKOS_LAMBDA(int i, int j, int k) {
 //	                u(i, j, k) = static_cast<real>(rand()) / RAND_MAX;
@@ -207,12 +250,19 @@ public :
 	}
 
 	void initialize_central_block() {
+/**
+ *	@brief Call the Kokkos kernel that initialize with the central block policy
+ *	@todo Usage of hierarchical parallelism
+ */		
 		FunctorCentralBlock functor(u, v, utmp, vtmp, nx,ny,nz) ; 
 		Kokkos::parallel_for("test", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0,0,0},{nx, ny, nz}), functor);
 
 	}
 
         void update() {
+/**
+ *	@brief Call the Kokkos kernel that update the main fields u and v with the newly updated  utmp and vtmp fields
+ */		
                 FunctorUpdate functor(u, v, utmp, vtmp, nx,ny,nz) ;
                 Kokkos::parallel_for("update", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0,0,0},{nx, ny, nz}), functor);
 
@@ -221,7 +271,10 @@ public :
 
 
 	void perform_time_step() {
-
+/**
+ *	@brief Select the Kokkos stencil kernel mode 
+ *	@todo Enable 2D and 3D configurations
+ */
                 switch(setting.stencilType) {
                         case StencilType::SevenPoint :
                                 stencil_seven_point();
@@ -232,11 +285,16 @@ public :
 	}
 
         void initialize() {
+/**
+ *	@brief Select the field initialization mode
+ *	@todo use switch case and implement the full and random versions
+ */
+
+		
 		if (setting.initType == InitializationType::CentralBlock){
 			initialize_central_block();
 		}
 		else if (setting.initType == InitializationType::Full){
-			std::cout << "ighjfouhjd" << std::endl ; 
                         //initialize_full();
                 }
                 if (setting.initType == InitializationType::Random){
@@ -247,24 +305,33 @@ public :
 
 
 	void stencil_seven_point() {
+/**
+ *	@brief Call the seven point stencil Kokkos kernel
+ *	@todo Add hierarchical paralellism policy
+ */		
                 FunctorStencilSevenPoint functor(u, v, utmp, vtmp, setting) ;
                 Kokkos::parallel_for("test3", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0,0,0},{nx, ny, nz}), functor);
 
 	}
 	void stencil_twenty_seven_point(){
-		//todo
+/**
+ *	@brief Call the twenty seven points stencil kokkos kernel
+ *	@todo Implement it !!
+ */		
 	}
 
 	void save_to_hdf(HDF& hdf,  Kokkos::View<real***>::HostMirror& h_view, const std::string filename){
+/**
+ *	@brief save a flattened Kokkos Host View in the already created HDF file 
+ */		
 		hdf.dataset = hdf.file.createDataSet<real>(filename, HighFive::DataSpace(hdf.dims));
 
 		for (int i = 0 ; i < nx ; i++){
 	                        for (int j = 0 ; j < ny ; j++){
 	                                        for (int k = 0 ; k < nz ; k++){
 	                                                hdf.tmp[i*ny*nz + j*nz + k] = h_view(i,j,k);
-                                                        //hdf.tmp[i*ny*nz + j*nz + k] = 0.0;							
-	                                        }
-	                        }
+						}
+				}
 	        }
 	        hdf.dataset.write(hdf.tmp);
 	}
@@ -272,52 +339,26 @@ public :
 };
 
 
-using View = Kokkos::View<real*>;
-
-class Test {
-public:
-	View a = View("a", 10);
-	
-};
-
-class Test2 {
-public:
-	View a ; 
-	View::HostMirror b ; 
-};
-
-
-class Test3 {
-public:
-	View a ; 
-	View::HostMirror b ; 
-	void init(int n){
-		a = View("a", n) ; 
-		b = create_mirror_view(a) ; 
-	}
-	void c(){
-		Kokkos::deep_copy(b, a) ; 
-	}
-};
 
 int main(int argc, char ** argv){
+
+	std::cout << "-- GrayScott Generator --"<< std::endl ; 
+
+	GrayScott::Setting setting ;
+	setting.is3D = true ;
+	setting.initType = GrayScott::InitializationType::CentralBlock;
+	setting.stencilType = GrayScott::StencilType::SevenPoint;	
+	setting.bc = GrayScott::BoundaryCondition::Periodic;
+
+	// Here : add parser that modify GrayScott::Setting parameters
+	// Here : add printf of the modified / unmodified parameters if wanted 
+
 	Kokkos::initialize(argc, argv);
-	{	
-
-
-
-	
-		GrayScott::Setting setting ; 
-		setting.is3D = true ; 
-		setting.initType = GrayScott::InitializationType::CentralBlock;
-		setting.stencilType = GrayScott::StencilType::SevenPoint;
-		setting.bc = GrayScott::BoundaryCondition::Periodic;
-		
+	{		
 		GrayScott simulation(setting);
 		simulation.allocate();
 		simulation.initialize() ; 
 		simulation.run() ; 
-	
 	}
 	Kokkos::finalize() ; 
 	return 0 ; 
