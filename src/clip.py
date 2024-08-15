@@ -91,10 +91,13 @@ with h5py.File("dump", 'r') as file:
 
         apply_light_cubemap(p)
 #        apply_light_custom(p)
-
-        filename = "img/img{}.png".format(i)
-        p.screenshot(filename)
-        gif.append(Image.open(filename))
+        folder = "img/"
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        filename = "img"
+        filenames = folder  + filename+"{}.png".format(i)
+        p.screenshot(filenames)
+        gif.append(Image.open(filenames))
         p.clear()
         p.close()
 
