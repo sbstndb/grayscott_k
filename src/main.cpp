@@ -66,7 +66,7 @@ class GrayScott {
  */	
 public : 
 	enum class BoundaryCondition {
-		Periodic
+		Periodic,
 		NoPeriodic
 	};
 	enum class InitializationType {
